@@ -1,6 +1,6 @@
 import json
 from random import randint
-from action_recognition import ActioRecognition
+from service.action_recognition import ActioRecognition
 import pickle
 import torch
 
