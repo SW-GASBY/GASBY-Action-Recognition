@@ -8,14 +8,16 @@ from utils.s3utils import download_file, upload_file
 import os
 import shutil
 from entity.player import Player
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS
 
-@app.route('/action_predict/check')
+@app.route('/action_predict')
 def check():
     return 'ok'
 
-@app.route('/predict', methods = ['POST'])
+@app.route('/action-predict/predict', methods = ['POST'])
 def predict():
     data = request.get_json()
     if data is None:
