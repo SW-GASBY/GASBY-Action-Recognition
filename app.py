@@ -23,11 +23,9 @@ def predict():
     
     uuid = data['uuid']
     
-    # os.mkdir('resources/' + uuid, exist_ok=True)
-    # download_file('gasby-mot-result', uuid, 'resources/' + uuid, 'variables.pkl')
+    download_file('gasby-mot-result', uuid, 'resources/' + uuid, 'variables.pkl')
     
-    # frames, playerBoxes = pickle.load(open('./resources/' + uuid + '/variables.pkl', 'rb'))
-    frames, playerBoxes = pickle.load(open('./resources/variables.pkl', 'rb'))
+    frames, playerBoxes = pickle.load(open('./resources/' + uuid + '/variables.pkl', 'rb'))
 
     players = []
     for i in range(1, 6):
@@ -39,9 +37,7 @@ def predict():
         for i in range(len(frames)):
             player.bboxs[i] = (playerBoxes[i][player.ID-1])
     
-    # actions = ActioRecognition(frames, playerBoxes) 
-    actions = pickle.load(open('./resources/actions.pkl', 'rb'))
-    # pickle.dump(actions, open('./resources/' + uuid + '/actions.pkl', 'wb'))
+    actions = ActioRecognition(frames, playerBoxes) 
     json_list = create_json(players, actions, frame_len=len(frames))
 
     # 행동 제한하는 부분

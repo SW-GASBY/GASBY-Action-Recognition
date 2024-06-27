@@ -185,7 +185,7 @@ def create_json(players, actions, frame_len):
                                  'action': ac}
                 temp.append({'id': players[j].ID, 'team': 'USA' if players[j].team == 'white' else 'NGR', 'box': players[j].bboxs[i], 'action': ac})
                 json_list.append({'player': players[j].ID,
-                                  'frame': i,
+                                  'frame': (i, i * 16),
                                   'team': 'USA' if players[j].team == 'white' else 'NGR',
                                   'action': ac})
     return json_list
