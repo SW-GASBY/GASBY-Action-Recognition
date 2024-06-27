@@ -13,7 +13,7 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS
 
-@app.route('/action_predict')
+@app.route('/action-predict')
 def check():
     return 'ok'
 
