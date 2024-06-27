@@ -33,6 +33,8 @@ def create_json(players):
 
 frames, playerBoxes = pickle.load(open('./resources/variables.pkl', 'rb'))
 
+
+
 actions = ActioRecognition(frames, playerBoxes) 
 for i in range(28):
         for j in range(10):

@@ -171,4 +171,21 @@ def ActioRecognition(videoFrames, playerBoxes):
     print('predictions ', predictions)
     
     return predictions
-         
+
+
+def create_json(players, actions, frame_len):
+    json_list = []
+    pl = []
+    for i in range(frame_len // 16):
+        temp = []
+        for j in range(10):
+            if not(players[j].bboxs[i][0] == 0 and players[j].bboxs[i][1] == 0 and players[j].bboxs[i][2] == 0 and players[j].bboxs[i][3] == 0):
+                ac = actions[j][i]    
+                actions[j][i] = {'box': (players[j].bboxs[i], players[j].bboxs[i][1], players[j].bboxs[i][2] - players[j].bboxs[i][0], players[j].bboxs[i][3] - players[j].bboxs[i][1]),
+                                 'action': ac}
+                temp.append({'id': players[j].ID, 'team': 'USA' if players[j].team == 'white' else 'NGR', 'box': players[j].bboxs[i], 'action': ac})
+                json_list.append({'player': players[j].ID,
+                                  'frame': i,
+                                  'team': 'USA' if players[j].team == 'white' else 'NGR',
+                                  'action': ac})
+    return json_list

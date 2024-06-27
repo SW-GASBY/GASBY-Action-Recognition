@@ -1,12 +1,13 @@
 from flask import Flask, request, jsonify
 import json
 from random import randint
-from service.action_recognition import ActioRecognition
+from service.action_recognition import ActioRecognition, create_json
 import pickle
 import torch
 from utils.s3utils import download_file, upload_file
 import os
 import shutil
+from entity.player import Player
 
 app = Flask(__name__)
 
@@ -14,7 +15,7 @@ app = Flask(__name__)
 def check():
     return 'ok'
 
-@app.route('/action_predict/predict', methods = ['POST'])
+@app.route('/predict', methods = ['POST'])
 def predict():
     data = request.get_json()
     if data is None:
@@ -23,56 +24,48 @@ def predict():
     uuid = data['uuid']
     
     # os.mkdir('resources/' + uuid, exist_ok=True)
-    download_file('gasby-mot-result', uuid, 'resources/' + uuid, 'variables.pkl')
+    # download_file('gasby-mot-result', uuid, 'resources/' + uuid, 'variables.pkl')
     
-    frames, playerBoxes = pickle.load(open('./resources/' + uuid + '/variables.pkl', 'rb'))
+    # frames, playerBoxes = pickle.load(open('./resources/' + uuid + '/variables.pkl', 'rb'))
+    frames, playerBoxes = pickle.load(open('./resources/variables.pkl', 'rb'))
 
-    actions = ActioRecognition(frames, playerBoxes) 
-    for i in range(28):
-            for j in range(10):
-                if j != 0:
-                    if i >= 9:
-                        actions[j][i] = 9
-                    else:
-                        actions[j][i] = 2  
-                if j == 0:
-                    actions[j][i] = 3      
-    colors = []
-    for i in range(11):
-        colors.append((randint(0, 255), randint(0, 255), randint(0, 255)))
+    players = []
+    for i in range(1, 6):
+        players.append(Player(i, 'white', (255, 255, 255)))
+        players.append(Player(i, 'black', (255, 255, 255)))
+    players.append(Player(0, 'referee', (0, 0, 0)))
+    
+    for player in players:
+        for i in range(len(frames)):
+            player.bboxs[i] = (playerBoxes[i][player.ID-1])
+    
+    # actions = ActioRecognition(frames, playerBoxes) 
+    actions = pickle.load(open('./resources/actions.pkl', 'rb'))
+    # pickle.dump(actions, open('./resources/' + uuid + '/actions.pkl', 'wb'))
+    json_list = create_json(players, actions, frame_len=len(frames))
+
+    # 행동 제한하는 부분
+    # for i in range(28):
+    #         for j in range(10):
+    #             if j != 0:
+    #                 if i >= 9:
+    #                     actions[j][i] = 9
+    #                 else:
+    #                     actions[j][i] = 2  
+    #             if j == 0:
+    #                 actions[j][i] = 3    
+    
+    if not os.path.exists('outputs/' + uuid):
+        os.mkdir('outputs/' + uuid)
+    with open('outputs/' + uuid + '/action.json', 'w') as json_file:
+        json.dump(json_list, json_file, indent=4)
+    
+    upload_file('gasby-actrecog-result', uuid, 'action.json')
     
     shutil.rmtree('resources/' + uuid)
+    shutil.rmtree('outputs/' + uuid)
 
-    return actions
-
-
-
-# def create_json(players):
-#     json_list = []
-#     pl = []
-#     for i in range(28):
-#         if i*15 > 230:
-#             break
-#         temp = []
-#         for j in range(10):
-#             if not(players[j].bboxs[i*15][0] == 0 and players[j].bboxs[i*15][1] == 0 and players[j].bboxs[i*15][2] == 0 and players[j].bboxs[i*15][3] == 0):
-#                 ac = actions[j][i]
-#                 if j != 0 and (actions[j][i] == 3 or actions[j][i] == 4 or actions[j][i] == 0):
-#                     if i >= 9:
-#                         ac = 9
-#                     else:
-#                         ac = 2  
-#                 if j == 0:
-#                     ac = 3      
-#                 actions[j][i] = {'box': (players[j].bboxs[i*15][0], players[j].bboxs[i*15][1], players[j].bboxs[i*15][2] - players[j].bboxs[i*15][0], players[j].bboxs[i*15][3] - players[j].bboxs[i*15][1]),
-#                                  'action': ac}
-#                 temp.append({'id': players[j].ID, 'team': 'USA' if players[j].team == 'white' else 'NGR', 'box': players[j].bboxs[i*15], 'action': ac})
-#                 json_list.append({'player': players[j].ID,
-#                                   'time': i * 0.6217,
-#                                   'team': 'USA' if players[j].team == 'white' else 'NGR',
-#                                   'action': ac})
-#         pl.append({i*15: temp})
-#     return json_list, pl
+    return json_list
 
 if __name__ == '__main__':
     app.run(debug=True)
