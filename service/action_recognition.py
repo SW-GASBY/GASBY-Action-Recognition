@@ -135,8 +135,8 @@ def ActioRecognition(videoFrames, playerBoxes):
     print("# Frames per Clip: {}".format(len(frames[0][0])))
     print("Frame Shape: {}".format(frames[0][0][0].shape))
 
-    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    device = torch.device("cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # device = torch.device("cpu")
 
     # Initialize R(2+1)D Model
     model = models.video.r2plus1d_18(pretrained=args.pretrained, progress=True)
