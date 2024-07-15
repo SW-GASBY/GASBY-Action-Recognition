@@ -25,19 +25,31 @@ def predict():
     
     uuid = data['uuid']
     
-    download_file('gasby-mot-result', uuid, 'resources/' + uuid, 'variables.pkl')
+    # download_file('gasby-mot-result', uuid, 'resources/' + uuid, 'frames.pkl')
+    # download_file('gasby-mot-result', uuid, 'resources/' + uuid, 'player_positions_filtered.json')
     
-    frames, playerBoxes = pickle.load(open('./resources/' + uuid + '/variables.pkl', 'rb'))
-
+    frames = pickle.load(open('./resources/' + uuid + '/frames.pkl', 'rb'))
+    
+    with open('./resources/' + uuid + '/player_positions_filtered.json', 'r') as f:
+        mot_results = json.load(f)
+    
+    
+    # mot results -> Player (box -> 행동인식 바운딩 박스 양식 맞춰야함)
+    # team, color는 우선 생략
+    playerBoxes = []
     players = []
-    for i in range(1, 6):
-        players.append(Player(i, 'white', (255, 255, 255)))
-        players.append(Player(i, 'black', (255, 255, 255)))
-    players.append(Player(0, 'referee', (0, 0, 0)))
-    
-    for player in players:
-        for i in range(len(frames)):
-            player.bboxs[i] = (playerBoxes[i][player.ID-1])
+    for r in mot_results:
+        player = Player(r['player_id'], 'USA', 'white')
+        bboxs = []
+        for pos in r['position']:
+            box = pos['box']
+            # 행동인식 모델에서 사용하는 바운딩 박스에 맞게 변경 (x1, y1, x2, y2) ->   
+            # act_bbox = 
+            bboxs.append(box)
+           
+        player.bboxs = bboxs
+        playerBoxes.append(bboxs)
+        players.append(player)
     
     actions = ActioRecognition(frames, playerBoxes) 
     json_list = create_json(players, actions, frame_len=len(frames))

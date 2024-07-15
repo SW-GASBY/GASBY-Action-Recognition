@@ -50,19 +50,26 @@ args = EasyDict({
 
 })
 
-def cropVideo(clip, crop_window, player=0):
+def cropVideo(clip, crop_window,  max_w, max_h, player=0):
     
     video = []
     #print(len(clip))
-    #print(crop_window.shape)
+    
     for i, frame in enumerate(clip):
-        print(crop_window[i])
-        x = int(crop_window[i][player][0])
-        y = int(crop_window[i][player][1])
-        w = int(crop_window[i][player][2])
-        h = int(crop_window[i][player][3])
+        x = int(crop_window[player][i][0])
+        y = int(crop_window[player][i][1])
+        w = int(crop_window[player][i][2] - crop_window[player][i][0])
+        h = int(crop_window[player][i][3] - crop_window[player][i][1])
 
         cropped_frame = frame[y:y+h, x:x+w]
+        # max_w또는 max_h보다 작은 경우 padding
+        if cropped_frame.shape[0] < max_h:
+            cropped_frame = np.pad(cropped_frame, ((0, int(max_h - cropped_frame.shape[0])), (0, 0), (0, 0)), mode='constant')
+        if cropped_frame.shape[1] < max_w:
+            cropped_frame = np.pad(cropped_frame, ((0, 0), (0, int(max_w - cropped_frame.shape[1])), (0, 0)), mode='constant')
+            
+        # video.append(cropped_frame)
+        
         # resize to 128x176
         try:
             resized_frame = cv2.resize(
@@ -84,48 +91,67 @@ def cropVideo(clip, crop_window, player=0):
 
 def cropWindows(vidFrames, playerBoxes, seq_length=16, vid_stride=8):
     
-    player_count = len(playerBoxes[0])
+    player_count = len(playerBoxes)
     player_frames = {}
     for player in range(player_count):
         player_frames[player] = []
 
     # How many clips in the whole video
-    n_clips = len(vidFrames) // vid_stride
+    # n_clips = len(vidFrames) // vid_stride
+    player_n_clips = [ len(playerBoxes[player]) // vid_stride for player in range(player_count)]
+    # 각 플레이어별 최대 크기의 바운딩 박스 w와 h 찾기
+    player_max_w = [0 for _ in range(player_count)]
+    player_max_h = [0 for _ in range(player_count)]
+    for player in range(player_count):
+        for box in playerBoxes[player]:
+            w = box[2] - box[0]
+            h = box[3] - box[1]
+            if w > player_max_w[player]:
+                player_max_w[player] = w
+            if h > player_max_h[player]:
+                player_max_h[player] = h
+    
     # print(playerBoxes.shape)
 
-    continue_clip = 0
-    for clip_n in range(n_clips):
-        crop_window = playerBoxes[clip_n*vid_stride: clip_n*vid_stride + seq_length]
-        for player in range(player_count):
-            if clip_n*vid_stride + seq_length < len(vidFrames):
-                clip = vidFrames[clip_n*vid_stride: clip_n*vid_stride + seq_length]
-                #print(" length of clip ", len(clip))
-                #print(np.asarray(cropVideo(clip, crop_window, player)).shape)
-                player_frames[player].append(np.asarray(cropVideo(clip, crop_window, player)))
-            else:
-                continue_clip = clip_n
+    for n_clips in player_n_clips:
+        continue_clip = 0
+        for clip_n in range(n_clips):
+            seq_boxes = [playerBoxes[player][clip_n*vid_stride : clip_n*vid_stride + seq_length] for player in range(player_count)]
+            for player in range(player_count):
+                if seq_boxes[player] == []:
+                    continue
+                if len(seq_boxes[player]) != seq_length:
+                    continue
+                if clip_n*vid_stride + seq_length < len(vidFrames):
+                    clip = vidFrames[clip_n*vid_stride: clip_n*vid_stride + len(seq_boxes[player])]
+                    #print(" length of clip ", len(clip))
+                    #print(np.asarray(cropVideo(clip, crop_window, player)).shape)
+                    player_frames[player].append(cropVideo(clip, seq_boxes, player_max_w[player], player_max_h[player], player))
+                else:
+                    continue_clip = clip_n
+                    break
+            if continue_clip != 0:
                 break
-        if continue_clip != 0:
-            break
 
-    # Append to list after padding
-    for i in range(continue_clip, n_clips):
-        for player in range(player_count):
-            crop_window = playerBoxes[vid_stride*i:]
-            frames_remaining = len(vidFrames) - vid_stride * i
-            clip = vidFrames[vid_stride*i:]
-            player_frames[player].append(np.asarray(cropVideo(clip, crop_window, player) + [
-            np.zeros((int(176), int(128), 3), dtype=np.uint8) for x in range(seq_length-frames_remaining)
-        ]))
+    # # Append to list after padding
+    # for i in range(continue_clip, n_clips):
+    #     for player in range(player_count):
+    #         crop_window = playerBoxes[vid_stride*i:]
+    #         frames_remaining = len(vidFrames) - vid_stride * i
+    #         clip = vidFrames[vid_stride*i:]
+    #         player_frames[player].append(np.asarray(cropVideo(clip, crop_window, player) + [
+    #         np.zeros((int(176), int(128), 3), dtype=np.uint8) for x in range(seq_length-frames_remaining)
+    #     ]))
 
     # Check if number of clips is expected
-    assert(len(player_frames[0]) == n_clips)
+    # assert(len(player_frames[0]) == n_clips)
 
     return player_frames
 
 def inference_batch(batch):
     # (batch, t, h, w, c) --> (batch, c, t, h, w)
-    batch = batch.permute(0, 4, 1, 2, 3)
+    # (t, c, batch, h, w)
+    batch = batch.permute(1, 4, 0, 2, 3)
     return batch
 
 def ActioRecognition(videoFrames, playerBoxes):
@@ -155,8 +181,10 @@ def ActioRecognition(videoFrames, playerBoxes):
     model.eval()
 
     predictions = {}
-    for player in range(len(playerBoxes[0])):
-        input_frames = inference_batch(torch.FloatTensor(frames[player]))
+    for player in range(len(playerBoxes)):
+        input_frames_np = np.array(frames[player])
+        input_frames_tensor = torch.tensor(input_frames_np, dtype=torch.float).to(device)
+        input_frames = inference_batch(input_frames_tensor)
         print('player ', player, ' input_frames ', input_frames.shape)
 
         input_frames = input_frames.to(device=device)
