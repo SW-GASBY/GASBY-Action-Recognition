@@ -4,5 +4,7 @@ class Player:
         self.team = team
         self.color = color
         self.bboxs = {}
+        self.positions = []
+        self.actions = []
         self.previous_bb = None
         self.has_ball = False

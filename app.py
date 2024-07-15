@@ -25,8 +25,8 @@ def predict():
     
     uuid = data['uuid']
     
-    # download_file('gasby-mot-result', uuid, 'resources/' + uuid, 'frames.pkl')
-    # download_file('gasby-mot-result', uuid, 'resources/' + uuid, 'player_positions_filtered.json')
+    download_file('gasby-mot-result', uuid, 'resources/' + uuid, 'frames.pkl')
+    download_file('gasby-mot-result', uuid, 'resources/' + uuid, 'player_positions_filtered.json')
     
     frames = pickle.load(open('./resources/' + uuid + '/frames.pkl', 'rb'))
     
@@ -41,17 +41,35 @@ def predict():
     for r in mot_results:
         player = Player(r['player_id'], 'USA', 'white')
         bboxs = []
+        position_names = []
         for pos in r['position']:
             box = pos['box']
+            pos_name = pos['position_name']
             # 행동인식 모델에서 사용하는 바운딩 박스에 맞게 변경 (x1, y1, x2, y2) ->   
             # act_bbox = 
             bboxs.append(box)
+            position_names.append(pos_name)
            
         player.bboxs = bboxs
+        player.positions = position_names
         playerBoxes.append(bboxs)
         players.append(player)
     
-    actions = ActioRecognition(frames, playerBoxes) 
+    actions = ActioRecognition(frames, playerBoxes)
+    
+    # For Debugging
+    # if not os.path.exists('outputs/' + uuid):
+    #     os.mkdir('outputs/' + uuid)
+    # pickle.dump(actions, open('./outputs/' + uuid + '/actions.pkl', 'wb'))
+    # actions = pickle.load(open('./outputs/' + uuid + '/actions.pkl', 'rb'))
+    
+    # for i in range(len(players)):
+    #     action = actions[i]
+    #     for j in range(len(players[i].bboxs)):
+    #         players[i].actions.append(action[j // 16])
+    
+
+
     json_list = create_json(players, actions, frame_len=len(frames))
 
     # 행동 제한하는 부분

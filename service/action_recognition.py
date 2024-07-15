@@ -45,7 +45,7 @@ args = EasyDict({
     'model_path': "model_checkpoints/r2plus1d_augmented-2/",
     'history_path': "histories/history_r2plus1d_augmented-2.txt",
     'seq_length': 16,
-    'vid_stride': 8,
+    'vid_stride': 16,
     'output_path': "output_videos/"
 
 })
@@ -206,14 +206,16 @@ def create_json(players, actions, frame_len):
     pl = []
     for i in range(frame_len // 16):
         temp = []
-        for j in range(10):
+        for j in range(len(players)):
             if not(players[j].bboxs[i][0] == 0 and players[j].bboxs[i][1] == 0 and players[j].bboxs[i][2] == 0 and players[j].bboxs[i][3] == 0):
-                ac = actions[j][i]    
+                ac = actions[j][i]
+                position = max(players[j].positions,key=players[j].positions[i * 16: (i + 1) * 16].count)    
                 actions[j][i] = {'box': (players[j].bboxs[i], players[j].bboxs[i][1], players[j].bboxs[i][2] - players[j].bboxs[i][0], players[j].bboxs[i][3] - players[j].bboxs[i][1]),
                                  'action': ac}
                 temp.append({'id': players[j].ID, 'team': 'USA' if players[j].team == 'white' else 'NGR', 'box': players[j].bboxs[i], 'action': ac})
                 json_list.append({'player': players[j].ID,
                                   'frame': (i * 16, (i + 1) * 16),
                                   'team': 'USA' if players[j].team == 'white' else 'NGR',
+                                  'position' : position,
                                   'action': ac})
     return json_list
