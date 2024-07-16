@@ -39,7 +39,7 @@ args = EasyDict({
     'base_model_name': 'r2plus1d_multiclass',
     'pretrained': True,
     'lr': 0.0001,
-    'start_epoch': 1,
+    'start_epoch': 2,
     'num_classes': 10,
     'labels': {"0" : "block", "1" : "pass", "2" : "run", "3" : "dribble", "4" : "shoot", "5" : "ball in hand", "6" : "defense", "7" : "pick" , "8" : "no_action" , "9" : "walk" , "10" : "discard"},
     'model_path': "model_checkpoints/r2plus1d_augmented-2/",
