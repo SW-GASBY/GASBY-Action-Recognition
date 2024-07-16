@@ -3,3 +3,4 @@
 *.pyc
 .env
 *.pkl
+*.gif
