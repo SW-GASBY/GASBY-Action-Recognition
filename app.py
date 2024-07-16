@@ -52,7 +52,7 @@ def predict():
     # team, color는 우선 생략
     players = []
     for r in mot_results:
-        player = Player(r['player_id'], 'USA')
+        player = Player(r['player_id'], r['team'])
         bboxs = {}
         position_names = {}
         for pos in r['positions']:
