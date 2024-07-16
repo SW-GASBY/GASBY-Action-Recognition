@@ -27,12 +27,11 @@ def predict():
         return jsonify({'error': 'No data found'})
     
     uuid = data['uuid']
-    video_url = data['video_url']
     
-    download_file('gasby-req', uuid, 'resources/' + uuid, video_url)
-    download_file('gasby-mot-result', uuid, 'resources/' + uuid, 'player_positions_filtered.json')
+    download_file('gasby-req', uuid, 'resources/' + uuid, uuid+".mp4")
+    download_file('gasby-mot-result', uuid, 'resources/' + uuid, uuid+'.json')
     
-    video = cv2.VideoCapture('./resources/' + uuid + '/test-video-1.mov')
+    video = cv2.VideoCapture('./resources/' + uuid + '/' + uuid + '.mp4')
     
     frames = []
     frame_count = 0
@@ -47,16 +46,16 @@ def predict():
         frames.append(frame)
         frame_count += 1
 
-    with open('./resources/' + uuid + '/player_positions_filtered.json', 'r') as f:
+    with open('./resources/' + uuid + '/'+uuid+'.json', 'r') as f:
         mot_results = json.load(f)
     
     # team, color는 우선 생략
     players = []
     for r in mot_results:
-        player = Player(r['player_id'], 'USA', 'white')
+        player = Player(r['player_id'], 'USA')
         bboxs = {}
         position_names = {}
-        for pos in r['position']:
+        for pos in r['positions']:
             frame = pos['frame']
             box = pos['box']
             pos_name = pos['position_name']
@@ -88,21 +87,22 @@ def predict():
                 action_idx = len(action) - 1
             players[i].actions[frame_nums[j]] = labels[str(action[action_idx])]
 
-    # 동영상에 선수 바운딩박스와 행동 입력
-    for frame_idx, frame in enumerate(frames):
-        for player in players:
-            if frame_idx in player.bboxs:
-                bbox = player.bboxs[frame_idx]
-                action = player.actions.get(frame_idx, 'No Action')
-                # 바운딩박스 그리기
-                cv2.rectangle(frame, (int(bbox[0]), int(bbox[1])), (int(bbox[2]), int(bbox[3])), (0, 255, 0), 2)
-                # 행동 라벨 표시
-                cv2.putText(frame, action, (int(bbox[0]), int(bbox[1] - 10)), cv2.FONT_HERSHEY_SIMPLEX, 2, (0,255,0), 2)
-        frames[frame_idx] = frame
+    # # 동영상에 선수 바운딩박스와 행동 입력
+    # # 행동 결과 확인용 gif 생성 부분
+    # for frame_idx, frame in enumerate(frames):
+    #     for player in players:
+    #         if frame_idx in player.bboxs:
+    #             bbox = player.bboxs[frame_idx]
+    #             action = player.actions.get(frame_idx, 'No Action')
+    #             # 바운딩박스 그리기
+    #             cv2.rectangle(frame, (int(bbox[0]), int(bbox[1])), (int(bbox[2]), int(bbox[3])), (0, 255, 0), 2)
+    #             # 행동 라벨 표시
+    #             cv2.putText(frame, action, (int(bbox[0]), int(bbox[1] - 10)), cv2.FONT_HERSHEY_SIMPLEX, 2, (0,255,0), 2)
+    #     frames[frame_idx] = frame
         
-    with imageio.get_writer('outputs/output.gif', mode='I', fps=10) as writer:
-        for frame in frames:
-                writer.append_data(frame)
+    # with imageio.get_writer('outputs/output.gif', mode='I', fps=10) as writer:
+    #     for frame in frames:
+    #             writer.append_data(frame)
 
     json_list = create_json(players, actions, frame_len=len(frames))
 
@@ -119,10 +119,10 @@ def predict():
     
     if not os.path.exists('outputs/' + uuid):
         os.mkdir('outputs/' + uuid)
-    with open('outputs/' + uuid + '/action.json', 'w') as json_file:
+    with open('outputs/' + uuid + '/' + uuid + '.json', 'w') as json_file:
         json.dump(json_list, json_file, indent=4)
     
-    upload_file('gasby-actrecog-result', uuid, 'action.json')
+    upload_file('gasby-actrecog-result', uuid, uuid+'.json', uuid)
     
     shutil.rmtree('resources/' + uuid)
     shutil.rmtree('outputs/' + uuid)

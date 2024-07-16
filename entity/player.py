@@ -1,8 +1,7 @@
 class Player:
-    def __init__(self, ID, team, color):
+    def __init__(self, ID, team):
         self.ID = ID
         self.team = team
-        self.color = color
         self.bboxs = {}
         self.positions = {}
         self.actions = {}

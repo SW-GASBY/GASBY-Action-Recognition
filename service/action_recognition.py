@@ -206,7 +206,7 @@ def create_json(players, actions, frame_len):
             if frame in player_frames[p_idx]:
                 json_list.append({'player': players[p_idx].ID,
                       'frame': frame,
-                      'team': 'USA' if players[p_idx].team == 'white' else 'NGR',
+                      'team': players[p_idx].team,
                       'position' : players[p_idx].positions[frame],
                       'action': players[p_idx].actions[frame]})
     

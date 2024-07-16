@@ -14,6 +14,6 @@ def download_file(bucket_name, bucket_folder, folder, file):
     res = s3.download_file(bucket_name, bucket_folder + '/' + file, folder + '/' + file)
     return res
 
-def upload_file(bucket_name, bucket_folder, file):
-    res = s3.upload_file(file, bucket_name, bucket_folder + '/' + file)
+def upload_file(bucket_name, bucket_folder, file, uuid):
+    res = s3.upload_file("outputs/" + uuid + "/" + file, bucket_name, bucket_folder + '/' + file)
     return res
