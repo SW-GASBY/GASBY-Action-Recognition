@@ -63,10 +63,10 @@ def cropVideo(clip, crop_window,  max_w, max_h, player=0):
 
         cropped_frame = frame[y:y+h, x:x+w]
         # max_w또는 max_h보다 작은 경우 padding
-        if cropped_frame.shape[0] < max_h:
-            cropped_frame = np.pad(cropped_frame, ((0, int(max_h - cropped_frame.shape[0])), (0, 0), (0, 0)), mode='constant')
-        if cropped_frame.shape[1] < max_w:
-            cropped_frame = np.pad(cropped_frame, ((0, 0), (0, int(max_w - cropped_frame.shape[1])), (0, 0)), mode='constant')
+        # if cropped_frame.shape[0] < max_h:
+        #     cropped_frame = np.pad(cropped_frame, ((0, int(max_h - cropped_frame.shape[0])), (0, 0), (0, 0)), mode='constant')
+        # if cropped_frame.shape[1] < max_w:
+        #     cropped_frame = np.pad(cropped_frame, ((0, 0), (0, int(max_w - cropped_frame.shape[1])), (0, 0)), mode='constant')
             
         # video.append(cropped_frame)
         
@@ -176,11 +176,15 @@ def ActioRecognition(videoFrames, players):
     model.eval()
 
     predictions = {}
-    for player in range(len(players)):
-        input_frames_np = np.array(frames[player])
+    drop_list = []
+    for p_id, player in enumerate(players):
+        if frames[p_id] == []:
+            drop_list.append(p_id)
+            continue
+        input_frames_np = np.array(frames[p_id])
         input_frames_tensor = torch.tensor(input_frames_np, dtype=torch.float).to(device)
         input_frames = inference_batch(input_frames_tensor)
-        print('player ', player, ' input_frames ', input_frames.shape)
+        print('player ', p_id, ' input_frames ', input_frames.shape)
 
         input_frames = input_frames.to(device=device)
  
@@ -189,11 +193,14 @@ def ActioRecognition(videoFrames, players):
             _, preds = torch.max(outputs, 1)
 
         # print(preds.cpu().numpy().tolist())
-        predictions[player] = preds.cpu().numpy().tolist()
+        predictions[p_id] = preds.cpu().numpy().tolist()
+    
+    for p_id in reversed(drop_list):
+        players.pop(p_id)
 
     print('predictions ', predictions)
     
-    return predictions
+    return players, predictions
 
 
 def create_json(players, actions, frame_len):
