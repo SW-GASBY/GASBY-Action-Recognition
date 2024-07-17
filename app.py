@@ -68,7 +68,7 @@ def predict():
         player.positions = position_names
         players.append(player)
     
-    actions = ActioRecognition(frames, players)
+    players, actions = ActioRecognition(frames, players)
     
     # For Debugging (행동인식 결과 저장하고, 불러옴)
     # if not os.path.exists('outputs/' + uuid):
@@ -76,6 +76,12 @@ def predict():
     # pickle.dump(actions, open('./outputs/' + uuid + '/actions.pkl', 'wb'))
     
     # actions = pickle.load(open('./outputs/' + uuid + '/actions.pkl', 'rb'))
+    
+    # 행동 제한하는 부분
+    for player in players:
+        for action in player.actions:
+            if action == "8":
+                player.actions[action] = "9"
     
     labels = {"0" : "block", "1" : "pass", "2" : "run", "3" : "dribble", "4" : "shoot", "5" : "ball in hand", "6" : "defense", "7" : "pick" , "8" : "no_action" , "9" : "walk" , "10" : "discard"}
     for i in range(len(players)):
@@ -89,33 +95,22 @@ def predict():
 
     # # 동영상에 선수 바운딩박스와 행동 입력
     # # 행동 결과 확인용 gif 생성 부분
-    # for frame_idx, frame in enumerate(frames):
-    #     for player in players:
-    #         if frame_idx in player.bboxs:
-    #             bbox = player.bboxs[frame_idx]
-    #             action = player.actions.get(frame_idx, 'No Action')
-    #             # 바운딩박스 그리기
-    #             cv2.rectangle(frame, (int(bbox[0]), int(bbox[1])), (int(bbox[2]), int(bbox[3])), (0, 255, 0), 2)
-    #             # 행동 라벨 표시
-    #             cv2.putText(frame, action, (int(bbox[0]), int(bbox[1] - 10)), cv2.FONT_HERSHEY_SIMPLEX, 2, (0,255,0), 2)
-    #     frames[frame_idx] = frame
+    for frame_idx, frame in enumerate(frames):
+        for player in players:
+            if frame_idx in player.bboxs:
+                bbox = player.bboxs[frame_idx]
+                action = player.actions.get(frame_idx, 'No Action')
+                # 바운딩박스 그리기
+                cv2.rectangle(frame, (int(bbox[0]), int(bbox[1])), (int(bbox[2]), int(bbox[3])), (0, 255, 0), 2)
+                # 행동 라벨 표시
+                cv2.putText(frame, action, (int(bbox[0]), int(bbox[1] - 10)), cv2.FONT_HERSHEY_SIMPLEX, 2, (0,255,0), 2)
+        frames[frame_idx] = frame
         
-    # with imageio.get_writer('outputs/output.gif', mode='I', fps=10) as writer:
-    #     for frame in frames:
-    #             writer.append_data(frame)
+    with imageio.get_writer('outputs/output.gif', mode='I', fps=10) as writer:
+        for frame in frames:
+                writer.append_data(frame)
 
     json_list = create_json(players, actions, frame_len=len(frames))
-
-    # 행동 제한하는 부분
-    # for i in range(28):
-    #         for j in range(10):
-    #             if j != 0:
-    #                 if i >= 9:
-    #                     actions[j][i] = 9
-    #                 else:
-    #                     actions[j][i] = 2  
-    #             if j == 0:
-    #                 actions[j][i] = 3    
     
     if not os.path.exists('outputs/' + uuid):
         os.mkdir('outputs/' + uuid)
@@ -131,3 +126,4 @@ def predict():
 
 if __name__ == '__main__':
     app.run(debug=True)
+    # app.run(host='0.0.0.0', port=5000, debug=True)
