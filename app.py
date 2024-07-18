@@ -12,6 +12,7 @@ import os
 import shutil
 from entity.player import Player
 from flask_cors import CORS
+import time
 
 app = Flask(__name__)
 CORS
@@ -27,6 +28,8 @@ def predict():
         return jsonify({'error': 'No data found'})
     
     uuid = data['uuid']
+    
+    start_time = time.time()
     
     download_file('gasby-req', uuid, 'resources/' + uuid, uuid+".mp4")
     download_file('gasby-mot-result', uuid, 'resources/' + uuid, uuid+'.json')
@@ -95,20 +98,20 @@ def predict():
 
     # # 동영상에 선수 바운딩박스와 행동 입력
     # # 행동 결과 확인용 gif 생성 부분
-    for frame_idx, frame in enumerate(frames):
-        for player in players:
-            if frame_idx in player.bboxs:
-                bbox = player.bboxs[frame_idx]
-                action = player.actions.get(frame_idx, 'No Action')
-                # 바운딩박스 그리기
-                cv2.rectangle(frame, (int(bbox[0]), int(bbox[1])), (int(bbox[2]), int(bbox[3])), (0, 255, 0), 2)
-                # 행동 라벨 표시
-                cv2.putText(frame, action, (int(bbox[0]), int(bbox[1] - 10)), cv2.FONT_HERSHEY_SIMPLEX, 2, (0,255,0), 2)
-        frames[frame_idx] = frame
+    # for frame_idx, frame in enumerate(frames):
+    #     for player in players:
+    #         if frame_idx in player.bboxs:
+    #             bbox = player.bboxs[frame_idx]
+    #             action = player.actions.get(frame_idx, 'No Action')
+    #             # 바운딩박스 그리기
+    #             cv2.rectangle(frame, (int(bbox[0]), int(bbox[1])), (int(bbox[2]), int(bbox[3])), (0, 255, 0), 2)
+    #             # 행동 라벨 표시
+    #             cv2.putText(frame, action, (int(bbox[0]), int(bbox[1] - 10)), cv2.FONT_HERSHEY_SIMPLEX, 2, (0,255,0), 2)
+    #     frames[frame_idx] = frame
         
-    with imageio.get_writer('outputs/output.gif', mode='I', fps=10) as writer:
-        for frame in frames:
-                writer.append_data(frame)
+    # with imageio.get_writer('outputs/output.gif', mode='I', fps=10) as writer:
+    #     for frame in frames:
+    #             writer.append_data(frame)
 
     json_list = create_json(players, actions, frame_len=len(frames))
     
@@ -121,6 +124,10 @@ def predict():
     
     shutil.rmtree('resources/' + uuid)
     shutil.rmtree('outputs/' + uuid)
+    
+    end_time = time.time()
+    response_time = end_time - start_time
+    print("Response Time: ", response_time)
 
     return json_list
 
