@@ -1,4 +1,5 @@
 from __future__ import print_function
+import os
 from imutils.object_detection import non_max_suppression
 import cv2
 import numpy as np
@@ -39,13 +40,13 @@ args = EasyDict({
     'base_model_name': 'r2plus1d_multiclass',
     'pretrained': True,
     'lr': 0.0001,
-    'start_epoch': 24,
+    'start_epoch': 19,
     'num_classes': 10,
     'labels': {"0" : "block", "1" : "pass", "2" : "run", "3" : "dribble", "4" : "shoot", "5" : "ball in hand", "6" : "defense", "7" : "pick" , "8" : "no_action" , "9" : "walk" , "10" : "discard"},
     'model_path': "model_checkpoints/r2plus1d_augmented-2/",
     'history_path': "histories/history_r2plus1d_augmented-2.txt",
     'seq_length': 16,
-    'vid_stride': 16,
+    'vid_stride': 8,
     'output_path': "output_videos/"
 
 })
@@ -151,6 +152,26 @@ def inference_batch(batch):
 
 def ActioRecognition(videoFrames, players):
     frames = cropWindows(videoFrames, players, seq_length=args.seq_length, vid_stride=args.vid_stride)
+
+    # 프레임 확인용 코드
+    # output_dir = "outputs/frames"
+    # if not os.path.exists(output_dir):
+    #     os.makedirs(output_dir)
+    # for player_id in range(len(frames)):
+    #     player_tensor = frames[player_id]
+    #     player_dir = os.path.join(output_dir, f"player_{player_id}")
+    #     if not os.path.exists(player_dir):
+    #         os.makedirs(player_dir)
+    
+    #     for i in range(len(player_tensor)):
+    #         player_frames = player_tensor[i]
+    #         for j in range(len(player_frames)):
+    #             frame = player_frames[j]
+    #             # OpenCV는 BGR 형식을 사용하므로, 필요한 경우 frame을 BGR로 변환
+    #             # frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+    #             frame_file = os.path.join(player_dir, f"frame_{i}_{j}.jpg")
+    #             cv2.imwrite(frame_file, frame)
+    
     print("Number of players tracked: {}".format(len(frames)))
     print("Number of windows: {}".format(len(frames[0])))
     print("# Frames per Clip: {}".format(len(frames[0][0])))

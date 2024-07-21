@@ -33,6 +33,7 @@ def predict():
     
     download_file('gasby-req', uuid, 'resources/' + uuid, uuid+".mp4")
     download_file('gasby-mot-result', uuid, 'resources/' + uuid, uuid+'.json')
+    download_file('gasby-mot-result', uuid, 'resources/' + uuid, uuid+'_ball.json')
     
     video = cv2.VideoCapture('./resources/' + uuid + '/' + uuid + '.mp4')
     
@@ -42,9 +43,9 @@ def predict():
         ok, frame = video.read()
         if not ok:
             break
-        if frame_count % 3 != 0:
-            frame_count += 1
-            continue
+        # if frame_count % 3 != 0:
+        #     frame_count += 1
+        #     continue
         
         frames.append(frame)
         frame_count += 1
@@ -81,21 +82,55 @@ def predict():
     # actions = pickle.load(open('./outputs/' + uuid + '/actions.pkl', 'rb'))
     
     # 행동 제한하는 부분
-    for player in players:
-        for action in player.actions:
-            if action == "8":
-                player.actions[action] = "9"
+    for idx in actions:
+        player_actions = actions[idx]
+        for action_idx in range(len(player_actions)):
+            if player_actions[action_idx] == "8":
+                player_actions[action_idx] = "9"
     
     labels = {"0" : "block", "1" : "pass", "2" : "run", "3" : "dribble", "4" : "shoot", "5" : "ball in hand", "6" : "defense", "7" : "pick" , "8" : "no_action" , "9" : "walk" , "10" : "discard"}
     for i in range(len(players)):
         action = actions[i]
         for j in range(len(players[i].bboxs)):
             frame_nums = list(players[i].bboxs.keys())
-            action_idx = j // 16
+            if j < 8:
+                action_idx = 0
+            else:
+                action_idx = j // 8
             if action_idx >= len(action):
                 action_idx = len(action) - 1
             players[i].actions[frame_nums[j]] = labels[str(action[action_idx])]
 
+    with open('./resources/' + uuid + '/'+uuid+'_ball.json', 'r') as f:
+        ball_result = json.load(f)
+    
+    
+    
+    ball_handler = -1
+    ball_idx = 0
+    ball_frame = 0
+    except_labels = {"dribble" : "run", "pass" : "walk", "shoot" : "walk"}
+    for frame_idx in range(len(frames)):
+        if ball_frame < frame_idx:
+            ball_idx += 1
+            ball_frame = ball_result[ball_idx]['frame']
+            ball_handler = ball_result[ball_idx]['player_id'] 
+        
+        for player in players:
+            if player.ID != ball_handler:
+                if frame_idx in player.actions and player.actions[frame_idx] in except_labels.keys():
+                    player.actions[frame_idx] = except_labels[player.actions[frame_idx]]
+                    
+    
+    # for i, ball in enumerate(ball_result):
+    #     player_id = ball['player_id']
+    #     frame = ball['frame']
+        
+    #     for player in players:
+    #         if player.ID != player_id:
+    #             if player.actions[str(frame)] in except_labels.keys():
+    #                 player.actions[str(frame)] = except_labels[player.actions[str(frame)]]
+        
     # # 동영상에 선수 바운딩박스와 행동 입력
     # # 행동 결과 확인용 gif 생성 부분
     # for frame_idx, frame in enumerate(frames):
