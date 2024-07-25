@@ -62,7 +62,10 @@ checkpoints.py - 학습된 pt파일로 행동인식 모델을 불러오는 로�
 s3utils.py - S3에 업로드, 다운로드를 위한 유틸리티 파일입니다.
 
 ## 2. 실행 방법
-1. model_checkpoints/r2plus1d_augemnted-2 폴더에 학습된 r2plus1d_multiclass_19_0.0001.pt파일을 붙여넣습니다.
+1. 아래의 링크에서 pt파일을 다운받고, model_checkpoints/r2plus1d_augemnted-2 폴더에 학습된 r2plus1d_multiclass_19_0.0001.pt파일을 붙여넣습니다.
+
+https://drive.google.com/file/d/12frz_Et8buApNm6tjZ7IAfOb7gDE2m6e/view?usp=drive_link
+
 2. .env파일을 생성하고 아래와같이 작성합니다.
 ```
 AWS_Accesskey= 제공한 AWS 엑세스 키
